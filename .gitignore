@@ -1,0 +1,6 @@
+.DS_Store
+.playwright-mcp/
+
+# Gerados pelo ide-helper (backend)
+backend/_ide_helper.php
+backend/.phpstorm.meta.php
