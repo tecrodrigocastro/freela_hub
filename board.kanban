@@ -1,0 +1,48 @@
+---
+title: FreelaHub — App Mobile
+columns: [Backlog, Doing, Done]
+labels: {bug: red, feature: blue, design-system: purple, auth: orange, vagas: green, candidaturas: gold, perfil: gray, core: red}
+---
+
+## Backlog
+
+- [ ] Revisão final: estados vazio/erro/loading, `flutter analyze`, `flutter test`, tags onda-3 e onda-4 <!-- id: m10 labels: core -->
+
+## Doing
+
+## Done
+
+- [x] Feature perfil: aba Perfil (ver, editar bio, sair) <!-- id: m9 labels: perfil, feature -->
+      Onda 4. Tela 8. `GET/PUT /me`, `POST /auth/logout`.
+      Feito: feature `perfil` (domain/data/presentation) com `GET/PUT /me` e `POST /auth/logout`; `PerfilBloc` (carregar, salvar bio, sair), avatar com iniciais, bio com erro 422 no campo, loading no botão, retry. `LogoutUsecase` sempre limpa a sessão local, mesmo sem rede. Rota `/perfil` troca o placeholder; `showLogout` removido do `TabPlaceholderPage`. Testes: `test/unit/perfil` e `test/widget/perfil`; `app_router_test` adaptado. Não conferido visualmente contra a tela 8.
+
+- [x] Design system: tema, tokens e componentes compartilhados <!-- id: m1 labels: design-system, feature -->
+      Tokens de SCREENS.md (cores, Libre Baskerville + Public Sans, raios, espaçamento 4). Componentes: PrimaryButton, AppTextField, StatusChip, EmptyState, ErrorState, SkeletonCard, VagaCard. Referência: `FreelaHub — Telas do App-png/Design System.png`.
+
+- [x] Core: dio + interceptor de token, storage da sessão, DI <!-- id: m2 labels: core -->
+      Onda 3. Aproveitar `core/client_http` e `SessionService` do template. `API_URL` via `--dart-define`.
+      Feito: `Endpoints` com `API_URL`, `Accept: application/json`, `SessionService.hasSession/expireSession`, `SessionExpiredInterceptor` (401 autenticado limpa o token e emite `onSessionExpired`), ligado no DI.
+
+- [x] Feature auth: Splash, Login e Cadastro conforme API.md <!-- id: m4 labels: auth, feature -->
+      Onda 3. Telas 1, 2 e 3. Estados: loading no botão, erro inline, 422 por campo, retry de rede. Testes de BLoC.
+      Feito: Splash, Login e Cadastro com a API real (`useMocks: false`), RegisterUsecase, CheckSessionUsecase, ValidationException/NetworkException, 422 por campo, retry de rede. Rotas `/splash`, `/login`, `/cadastro`. O guard de sessão fica na card de navegação.
+
+- [x] Navegação: go_router com guard de sessão e bottom navigation (Vagas, Candidaturas, Perfil) <!-- id: m3 labels: core -->
+      Onda 3. Sem sessão: Splash → Login ⇄ Cadastro. Detalhe e Candidatar-se empilham sobre a aba Vagas.
+      Feito: `createRouter` com redirect assíncrono por sessão e `refreshListenable` (401 volta ao login), `AppPaths`, abas `/vagas` `/candidaturas` `/perfil` com `AppBottomNav`, `rootNavigatorKey` para telas que cobrem a barra. Abas ainda com `TabPlaceholderPage` (Perfil com Sair provisório). Feature `home` do template removida.
+
+- [x] Feature vagas: lista com busca, filtros (categoria/modalidade) e scroll infinito <!-- id: m5 labels: vagas, feature -->
+      Onda 3. Tela 4. `GET /vagas`, `GET /categorias`. Skeletons, vazio, erro, pull-to-refresh. Testes de BLoC.
+      Feito: feature `vagas` (domain/data/presentation), `VagasBloc` com restartable/droppable, busca com debounce, chips de modalidade, bottom sheet de categorias, scroll infinito, skeleton/vazio/erro/pull-to-refresh. Validado com payloads reais da API. O toque no `VagaCard` ainda não navega: entra com o card do detalhe.
+
+- [x] Feature vagas: detalhe da vaga <!-- id: m6 labels: vagas, feature -->
+      Onda 3. Tela 5. Botão fixo no rodapé; "Candidatura enviada" desabilitado se `ja_candidatou`; 404 = vaga encerrada.
+      Feito: `VagaDetailBloc`, rota `/vagas/:id` sobre a bottom nav (`rootNavigatorKey`), card da lista abre o detalhe, 404 com mensagem própria e "Voltar". "Candidatar-se" faz push em `AppPaths.candidatar(id)` = `/vagas/:id/candidatar`: a rota é registrada no card da tela Candidatar-se.
+
+- [x] Feature candidaturas: tela Candidatar-se <!-- id: m7 labels: candidaturas, feature -->
+      Onda 4. Tela 6. Mensagem 10–1000 com contador, valor proposto opcional. Sucesso → snackbar e aba Candidaturas.
+      Feito: `CandidaturaFormBloc` + `EnviarCandidaturaUsecase`, rota `/vagas/:id/candidatar` (sem os dados da vaga cai no detalhe), máscara de reais, 422 por campo / "já se candidatou" / rede com retry, `CandidaturaSentNotifier` marca "Candidatado" na lista. Bug corrigido no core: o interceptor de request recriava as `RequestOptions` e fazia 4xx virarem exceção (login/vagas/candidatura). Validado contra a API real.
+
+- [x] Feature candidaturas: aba Candidaturas com retirar <!-- id: m8 labels: candidaturas, feature -->
+      Onda 4. Tela 7. Bottom sheet com mensagem; "Retirar candidatura" com confirmação se `enviada`.
+      Feito: `CandidaturasBloc` (lista paginada, retirar, recarrega ao enviar candidatura nova) e `CandidaturaDetailBloc` (mensagem no bottom sheet), cards com `StatusChip`, "Retirar candidatura" com confirmação só para `enviada`, estados vazio/erro/skeleton/pull-to-refresh. Validado contra a API real (inclusive 422 ao retirar não-enviada).
