@@ -1,0 +1,74 @@
+---
+title: FreelaHub — Backend
+columns: [Backlog, Doing, Done]
+labels: {core: red, modelo: blue, painel: purple, actions: green, policy: orange, api: gold, teste: gray, onda-1: blue, onda-2: gold}
+---
+
+## Backlog
+
+## Doing
+
+- [ ] Fechar Onda 1: testes, pint, commit e tag `onda-1` <!-- id: b10 labels: core, onda-1 -->
+      Aceite: login como `empresa1` mostra só as vagas dela; admin gerencia categorias; testes de Policy e Actions passam. `php artisan test` e `vendor/bin/pint`.
+      Feito: 70 testes passando (215 assertions), Pint limpo, assets recompilados. **Falta:** commit e tag `onda-1` — a pasta ainda não é um repositório git.
+
+- [ ] Fechar Onda 2: conferir API.md, testes, pint, commit e tag `onda-2` <!-- id: b15 labels: core, onda-2 -->
+      Aceite: todos os endpoints respondem como em `docs/API.md`. Se o contrato mudar, atualizar o doc no mesmo commit.
+      Feito: 116 testes (442 assertions), Pint limpo, `docs/API.md` conferido (única mudança: o texto de `message` nos 422) e fluxo validado contra o servidor real com MySQL. **Falta:** commit e tag `onda-2` — a pasta ainda não é um repositório git.
+
+## Done
+
+- [x] API Auth: Sanctum, register, login, logout, GET/PUT /me <!-- id: b11 labels: api, onda-2 -->
+      Onda 2. `AuthController`, `RegisterRequest`, `LoginRequest`, `UserResource`. Register cria sempre freelancer; login de não-freelancer → 403; credencial inválida → 422 em `email`. Testes Feature.
+      Feito: Sanctum (`install:api`), `HasApiTokens` no `User`; `AuthController` + Actions `RegistrarFreelancer`/`AutenticarFreelancer`; `RegisterRequest`, `LoginRequest`, `UpdateMeRequest`, `UserResource`. Login de não-freelancer → 403; credencial inválida ou usuário inativo → 422 em `email`. `PUT /me` só altera `name` e `bio`. `AuthApiTest` (17).
+
+- [x] API Categorias e Vagas (lista com busca/filtros e detalhe) <!-- id: b12 labels: api, onda-2 -->
+      Onda 2. `GET /categorias`, `GET /vagas` (só `aberta`, 10/pág, `q`, `categoria_id`, `modalidade`, `ja_candidatou`), `GET /vagas/{id}` (`descricao`, `total_candidaturas`; encerrada → 404). R1. Testes Feature.
+      Feito: `GET /categorias`, `GET /vagas` (só abertas, 10/pág, `q` com curingas escapados, `categoria_id`, `modalidade`, `ja_candidatou` só do usuário logado) e `GET /vagas/{id}` (`descricao`, `total_candidaturas`; encerrada → 404). `VagaApiTest`.
+
+- [x] API Candidaturas: criar, listar, detalhar e retirar <!-- id: b13 labels: api, onda-2 -->
+      Onda 2. `POST /vagas/{id}/candidaturas`, `GET /candidaturas` (filtro `status`), `GET/DELETE /candidaturas/{id}`. `CandidaturaRequest`, `CandidaturaResource`; chama as Actions. R2, R3, R6, R7. Testes Feature.
+      Feito: `POST /vagas/{id}/candidaturas` (403 antes de validar para não-freelancer), `GET /candidaturas` (filtro `status`), `GET/DELETE /candidaturas/{id}`. Usa as Actions e as Policies. `CandidaturaApiTest`, incluindo o fluxo registro → candidatura → retirada.
+
+- [x] Coleção `.http` do fluxo completo <!-- id: b14 labels: api, teste, onda-2 -->
+      Onda 2. Registro → login → vagas → candidatura → retirada, executável no Cockpit (`cockpit http run`).
+      Feito: `docs/api.http` com as 12 chamadas do contrato, executável com `cockpit http run`. O token do login é colado em `@token` (o runner não encadeia respostas nem suporta `{{$timestamp}}`).
+
+- [x] Seeders: categorias, usuários, vagas e candidaturas <!-- id: b2 labels: modelo, onda-1 -->
+      Onda 1. `CategoriaSeeder` (8), `UserSeeder` (admin, empresa1, empresa2, freela; senha `password`), `VagaSeeder` (~20 em pt-BR, 2 encerradas), `CandidaturaSeeder` (3 status). Credenciais em PRODUCT.md.
+      Feito: `CategoriaSeeder` (8), `UserSeeder` (admin, empresa1, empresa2, freela; senha `password`), `VagaSeeder` (20 vagas pt-BR, 2 encerradas, 2 empresas), `CandidaturaSeeder` (enviada/em_analise/aprovada). Idempotentes. `SeedersTest`.
+
+- [x] Painel Empresa e acesso por role (`canAccessPanel`) <!-- id: b3 labels: painel, onda-1 -->
+      Onda 1. Painéis `/admin` e `/empresa`; `admin → /admin`, `empresa → /empresa`, `freelancer` não acessa painel. O kit traz painéis Admin/App/Guest e tabela `admins` própria: adaptar (ex.: renomear `App` para `Empresa`) para usar `users.role`, conforme ARCHITECTURE.md.
+      Feito: painel `App` renomeado para `Empresa` (`/empresa`); `/admin` passou a autenticar `User` com `role=admin` (guard `web`, sem `AdminPlugin`/`UserPlugin` do kit). Acesso por role via `PanelAccess::using()` em `AppServiceProvider`. `AcessoAosPaineisTest`. O painel `Guest` do kit foi mantido.
+
+- [x] Actions de Vaga: PublicarVaga e EncerrarVaga <!-- id: b4 labels: actions, onda-1 -->
+      Onda 1. `app/Actions/Vagas`, método `handle()`. Publicar preenche `publicada_em` e status `aberta`; encerrar não apaga candidaturas (R8). Testes unitários/feature.
+      Feito: `PublicarVaga` (abre/reabre, mantém `publicada_em` original) e `EncerrarVaga` (R8). `VagaActionsTest`.
+
+- [x] Actions de Candidatura: Criar, Retirar e AtualizarStatus <!-- id: b5 labels: actions, onda-1 -->
+      Onda 1. `app/Actions/Candidaturas`. R1 (vaga aberta), R2 (única por vaga), R3 (só freelancer), R5 (transições `enviada → em_analise → aprovada|recusada`, final é definitivo), R6 (retirar só `enviada`), R7 (valor > 0). Testes.
+      Feito: `CriarCandidatura` (R1 → 404, R2 → 422 em `vaga`, R3 → 403), `RetirarCandidatura` (R6 → 422 em `status`), `AtualizarStatusCandidatura` (R5). Transições ficam no enum `StatusCandidatura`. `CandidaturaActionsTest`.
+
+- [x] Policies: VagaPolicy e CandidaturaPolicy (R4) <!-- id: b6 labels: policy, onda-1 -->
+      Onda 1. Empresa só vê/edita suas vagas e as candidaturas delas; freelancer só vê/retira as próprias. Registradas e testadas.
+      Feito: `VagaPolicy` e `CandidaturaPolicy` (R4), descobertas automaticamente. `PoliciesTest`.
+
+- [x] Filament Empresa: VagaResource <!-- id: b7 labels: painel, onda-1 -->
+      Onda 1. CRUD escopado à empresa logada; ações Publicar/Encerrar usando as Actions; usa a Policy.
+      Feito: `VagaResource` escopado por `user_id`; criar já publica; ações Reabrir/Encerrar com confirmação; atalho para candidaturas filtradas por vaga; valida `valor_max >= valor_min`. `PainelEmpresaTest`.
+
+- [x] Filament Empresa: CandidaturaResource <!-- id: b8 labels: painel, onda-1 -->
+      Onda 1. Lista por vaga; mudar status via `AtualizarStatusCandidatura` (só transições válidas, R5).
+      Feito: `CandidaturaResource` (só lista e detalhe), escopado às vagas da empresa; ações Analisar/Aprovar/Recusar só aparecem quando a transição é válida (R5); filtros por vaga e status.
+
+- [x] Filament Admin: CategoriaResource e UserResource <!-- id: b9 labels: painel, onda-1 -->
+      Onda 1. Admin gerencia categorias e usuários (inclui campo `role`).
+      Feito: `CategoriaResource` (slug automático e único) e `UserResource` (role, `empresa_nome` obrigatório para empresa, senha opcional na edição). `PainelAdminTest`.
+
+- [x] Modelo de dados: enums, migrations e models <!-- id: b1 labels: modelo, onda-1 -->
+      Onda 1. Enums `Role`, `Modalidade`, `TipoPagamento`, `StatusVaga`, `StatusCandidatura` (string backed, cast no model). Migrations: `role`/`empresa_nome`/`bio` em `users`, `categorias`, `vagas`, `candidaturas` (unique `vaga_id+user_id`, índices). Models com relacionamentos de DATA-MODEL.md.
+      Feito: 5 enums em `app/Enums`; migrations (`users` + role/empresa_nome/bio, `categorias`, `vagas`, `candidaturas` com unique `vaga_id+user_id`); models com casts/relacionamentos/scope `aberta`; factories com states (`UserFactory::admin/empresa/freelancer`, `VagaFactory::encerrada`); `tests/Feature/ModeloDeDadosTest.php` (8 testes).
+
+- [x] Setup do backend: Laravel + Filament (filakitv5) rodando <!-- id: b0 labels: core, onda-1 -->
+      Onda 0. `laravel new --using=jeffersongoncalves/filakitv5`, MySQL 8 em Docker (`freelahub-mysql`), migrations, assets Vite e `artisan serve` funcionando.
