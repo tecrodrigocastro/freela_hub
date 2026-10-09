@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Providers\Filament;
+
+use AchyutN\FilamentLogViewer\FilamentLogViewer;
+use App\Enums\Role;
+use App\Models\User;
+use DutchCodingCompany\FilamentDeveloperLogins\FilamentDeveloperLoginsPlugin;
+use Filament\Actions\Action;
+use Filament\Enums\ThemeMode;
+use Filament\Http\Middleware\Authenticate;
+use Filament\Http\Middleware\AuthenticateSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Pages;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use Filament\Widgets;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+use JeffersonGoncalves\Filament\Pwa\FilamentPwaPlugin;
+use JeffersonGoncalves\Filament\SecurityHeaders\SecurityHeadersPlugin;
+use JeffersonGoncalves\Filament\User\Pages\Auth\Login;
+use JeffersonGoncalves\SecurityHeaders\Middleware\SecurityHeaders;
+use Joaopaulolndev\FilamentEditProfile\FilamentEditProfilePlugin;
+use Joaopaulolndev\FilamentEditProfile\Pages\EditProfilePage;
+
+class AdminPanelProvider extends PanelProvider
+{
+    public function panel(Panel $panel): Panel
+    {
+        return $panel
+            ->default()
+            ->id('admin')
+            ->path('admin')
+            ->login(Login::class)
+            ->authGuard('web')
+            ->colors([
+                'primary' => Color::Amber,
+            ])
+            ->brandLogo(fn () => Vite::asset(config('filakit.logo')))
+            ->brandLogoHeight(fn () => request()->is('admin/login', 'admin/password-reset/*') ? '121px' : '50px')
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->defaultThemeMode(config('filakit.theme_mode', ThemeMode::Dark))
+            ->discoverClusters(in: app_path('Filament/Admin/Clusters'), for: 'App\\Filament\\Admin\\Clusters')
+            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
+            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
+            ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
+            ->pages([
+                Pages\Dashboard::class,
+            ])
+            ->widgets([
+                Widgets\AccountWidget::class,
+                Widgets\FilamentInfoWidget::class,
+            ])
+            ->middleware([
+                SecurityHeaders::class,
+                EncryptCookies::class,
+                AddQueuedCookiesToResponse::class,
+                StartSession::class,
+                AuthenticateSession::class,
+                ShareErrorsFromSession::class,
+                VerifyCsrfToken::class,
+                SubstituteBindings::class,
+                DisableBladeIconComponents::class,
+                DispatchServingFilamentEvent::class,
+            ])
+            ->authMiddleware([
+                Authenticate::class,
+            ])
+            ->navigationGroups([
+                __('User'),
+                __('Management'),
+                __('Settings'),
+            ])
+            ->plugins([
+                SecurityHeadersPlugin::make()
+                    ->navigationGroup(fn (): string => __('Settings')),
+                FilamentPwaPlugin::make(),
+                FilamentDeveloperLoginsPlugin::make()
+                    ->enabled(fn () => app()->environment('local'))
+                    ->modelClass(User::class)
+                    ->users(fn () => User::query()->where('role', Role::Admin)->where('status', true)->pluck('email', 'name')->toArray()),
+                FilamentLogViewer::make()
+                    ->navigationGroup(__('Settings')),
+                FilamentEditProfilePlugin::make()
+                    ->slug('my-profile')
+                    ->setTitle(__('My Profile'))
+                    ->setNavigationLabel(__('My Profile'))
+                    ->setNavigationGroup(__('Group Profile'))
+                    ->setIcon('heroicon-o-user')
+                    ->setSort(10)
+                    ->shouldRegisterNavigation(false)
+                    ->shouldShowEmailForm()
+                    ->shouldShowLocaleForm(options: [
+                        'pt_BR' => __('🇧🇷 Português'),
+                        'en' => __('🇺🇸 Inglês'),
+                        'es' => __('🇪🇸 Espanhol'),
+                    ])
+                    ->shouldShowThemeColorForm()
+                    ->shouldShowSanctumTokens()
+                    ->shouldShowMultiFactorAuthentication()
+                    ->shouldShowBrowserSessionsForm()
+                    ->shouldShowAvatarForm(),
+            ])
+            ->userMenuItems([
+                'profile' => Action::make('profile')
+                    ->label(fn (): string => __('My Profile'))
+                    ->url(fn (): string => EditProfilePage::getUrl())
+                    ->icon('heroicon-m-user-circle'),
+            ])
+            ->unsavedChangesAlerts()
+            ->passwordReset()
+            ->profile()
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s');
+    }
+}
