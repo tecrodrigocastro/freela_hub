@@ -1,0 +1,90 @@
+# FreelaHub — coleção de chamadas da API (contrato: docs/API.md)
+# Suba o backend (`composer dev` ou `php artisan serve`) e rode de cima para baixo.
+# Usa o freelancer do seeder. O "register" falha com 422 se o e-mail já existir: troque-o a cada execução.
+
+@baseUrl = http://127.0.0.1:8000/api
+@token = COLE_AQUI_O_TOKEN_DO_LOGIN
+
+### Registrar (cria sempre um freelancer)
+POST {{baseUrl}}/auth/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "Ana Souza",
+  "email": "ana@email.com",
+  "password": "secret123",
+  "password_confirmation": "secret123"
+}
+
+### Login (freelancer do seeder) — copie o `token` para a variável @token
+POST {{baseUrl}}/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "freela@freelahub.test",
+  "password": "password"
+}
+
+### Meu perfil
+GET {{baseUrl}}/me
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Atualizar perfil
+PUT {{baseUrl}}/me
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Ana Souza",
+  "bio": "Dev Flutter, 3 anos"
+}
+
+### Categorias
+GET {{baseUrl}}/categorias
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Vagas (busca e filtros: q, categoria_id, modalidade, page)
+GET {{baseUrl}}/vagas?q=flutter&modalidade=remoto
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Detalhe da vaga
+GET {{baseUrl}}/vagas/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Candidatar-se (use uma vaga em que a Ana ainda não se candidatou, ex.: 2)
+POST {{baseUrl}}/vagas/2/candidaturas
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "Tenho 3 anos de Flutter e já fiz apps de saúde.",
+  "valor_proposto": 4200.0
+}
+
+### Minhas candidaturas (filtro opcional: status)
+GET {{baseUrl}}/candidaturas
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Detalhe da candidatura
+GET {{baseUrl}}/candidaturas/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Retirar candidatura (só status "enviada"; troque o id pela candidatura criada acima)
+DELETE {{baseUrl}}/candidaturas/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Logout
+POST {{baseUrl}}/auth/logout
+Accept: application/json
+Authorization: Bearer {{token}}
